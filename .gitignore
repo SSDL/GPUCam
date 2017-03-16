@@ -1,0 +1,14 @@
+#Ignore everything by default.
+*.*
+
+#Don't ignore the .gitignore (duh)
+!.gitignore
+
+
+#Explicitly do not ignore cpp and hpp files
+!*.cpp
+!*.hpp
+
+#Do not ignore CMakeLists.txt and Makefiles for the samples
+!CMakeLists.txt
+!Makefile
