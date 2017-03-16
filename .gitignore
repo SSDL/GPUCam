@@ -9,6 +9,9 @@
 !*.cpp
 !*.hpp
 
+#Include python files
+!*.py
+
 #Do not ignore CMakeLists.txt and Makefiles for the samples
 !CMakeLists.txt
 !Makefile
