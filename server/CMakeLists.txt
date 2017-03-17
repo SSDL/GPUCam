@@ -1,9 +1,13 @@
 cmake_minimum_required(VERSION 2.8)
-set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
+
 project( server )
+
 find_package( OpenCV REQUIRED )
+
+find_library(LIBM3API_LIB NAMES libm3api.so)
+
+set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
+
 add_executable( server server.cpp xiApiPlusOcv.hpp xiApiPlusOcv.cpp)
-#LINK_DIRECTORIES(/home/ubuntu/package/api/Xarm64)
-INCLUDE_DIRECTORIES(/home/ubuntu/package/include)
-find_library(LIBM3API_LIB NAMES libm3api)
-target_link_libraries( server ${OpenCV_LIBS} ${CUDA_LIBRARIES} ${LIBM3API_LIB})
+
+target_link_libraries( server ${OpenCV_LIBS} ${LIBM3API_LIB})
