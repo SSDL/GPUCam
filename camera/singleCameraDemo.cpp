@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
 
             // display
             cv::imshow("image", cap);
-            cv::waitKey(20);
+            cv::waitKey(10);
 
             // write jpeg
             std::ostringstream name;
