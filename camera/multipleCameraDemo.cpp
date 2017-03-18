@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
 
     try
     {
-        for (int c = 0; c < nCameras; c++) cap[c] = cv::Mat();
+//      for (int c = 0; c < nCameras; c++) cap[c] = cv::Mat();
 
         // initialize the cameras and start aquisition
         std::cout << "Initializing Cameras..." << std::endl;
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
                 std::ostringstream name;
                 name << "images/" << cameraName[c];
                 if (i < 10) name << "0"; // padding
-                name << i << ".pgm";
+                name << i << ".jpg";
                 cv::imwrite(name.str(), cap[c]);
             }
 
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
                 // display
                 cv::imshow(cameraName[c], cap[c]);
                 cv::moveWindow(cameraName[c], counter, 0);
-                counter += cap[c].cols;
+                counter += cap[c].cols + 50;
                 cv::waitKey(10);
             }
         }
