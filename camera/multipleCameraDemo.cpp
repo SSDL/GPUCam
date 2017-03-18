@@ -37,11 +37,10 @@ int main(int argc, char* argv[])
     int exposureTime[nCameras] = {10000, 10000, 10000};
 
     // array of bandwidth limits (in Mbits per second)
-    int bandwidthLimit[nCameras] = {1500, 750, 750};
+    int bandwidthLimit[nCameras] = {2000, 600, 600};
 
     // array for captured images
-    cv::Mat cap[3];
-    //
+    cv::Mat cap[nCameras];
 
     try
     {
