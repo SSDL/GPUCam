@@ -45,7 +45,6 @@ int main(int argc, char* argv[])
 
     try
     {
-//      for (int c = 0; c < nCameras; c++) cap[c] = cv::Mat();
 
         // initialize the cameras and start aquisition
         std::cout << "Initializing Cameras..." << std::endl;

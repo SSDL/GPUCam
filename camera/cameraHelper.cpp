@@ -48,7 +48,7 @@ void captureNextImage(int nCameras, xiAPIplusCameraOcv *camera, cv::Mat *cap,
     for (int c = 0; c < nCameras; c++)
     {
         // get image
-        cap[c] = camera[c].GetNextImageOcvMat();//.clone();
+        cap[c] = camera[c].GetNextImageOcvMat();
 
         // normalize if required
         if (format[c] == XI_RAW16 || format[c] == XI_MONO16)
