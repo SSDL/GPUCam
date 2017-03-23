@@ -13,6 +13,8 @@ set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 
 # executables
 add_executable(findCubesat findCubesat.cpp)
+add_executable(distortionCorrection distortionCorrection.cpp)
 
 # link libraries
 target_link_libraries(findCubesat ${OpenCV_LIBS})
+target_link_libraries(distortionCorrection ${OpenCV_LIBS})
