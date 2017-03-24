@@ -4,6 +4,8 @@ import ctypes
 import struct
 import cv2
 import numpy as np
+import threading
+from multiprocessing.pool import ThreadPool
 
 packetSize = 1300
 dataType = {0 : np.uint8,
@@ -13,9 +15,12 @@ dataType = {0 : np.uint8,
             4 : np.int32,
             5 : np.float32,
             6 : np.float64}
+dataArrayLock = threading.Lock()
+image = []
 
 
 def receiveData(sock):
+    global image
     handshakeData = [None]*4
     for i in range(0,4):
         try:
@@ -23,7 +28,7 @@ def receiveData(sock):
             handshakeData[i] = handshakeEntry
         except struct.error:
             print "Disconnected during handshake."
-            return None
+            return False
 
     print "Image size: " + str(handshakeData[0]) + ", type number: " + str(handshakeData[1]) + ", rows: " + str(handshakeData[2]) + ", cols: " + str(handshakeData[3])
 
@@ -38,7 +43,7 @@ def receiveData(sock):
         received=sock.recv(nextPacketSize)
         if received == "":
             print "Disconnected during data transmission"
-            return None
+            return False
         buffer+=received
         bytesLeftToReceive-=len(received)
 
@@ -49,15 +54,17 @@ def receiveData(sock):
     #Image received, convert to a byte array and decode
 
     imageBytes = np.fromstring(buffer, dataType[handshakeData[1]])
+    dataArrayLock.acquire()
     image = np.reshape(imageBytes,(handshakeData[2], handshakeData[3]))
-    return image
+    dataArrayLock.release()
+    return True
 
 
 
 
 def main():
+    pool = ThreadPool(1)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
     server_address = ("10.34.193.123", 4097)
     print "Attempting to connect to the server..."
     while(True):
@@ -68,13 +75,17 @@ def main():
         else:
             print "Connection established."
         while(True):
-            image = receiveData(sock)
-            if image is None:
+            #May be an overkill to use threadpool? It's quicker than having the worker wait on a semaphore
+            socketMap = [sock]
+            dataReceived = pool.map(receiveData, socketMap)
+            if not dataReceived[0]:
                 break
             else:
+                dataArrayLock.acquire()
                 small = cv2.resize(image, (0,0), fx=0.3, fy=0.3)
-                cv2.imshow("Real-time view", small)
-                cv2.waitKey(100)
+                dataArrayLock.release()
+                cv2.imshow("Middle camera preview", small)
+                cv2.waitKey(1)
 
 if __name__ == "__main__":
     main()
