@@ -97,12 +97,10 @@ cv::Point2f detect(cv::Mat &img, double threshold)
 
     // get principle axes and center of mass, and mask, twice
     getPrincipleAxes(edge, cm, axes, theta);
-    for (int i = 0; i < 2 && axes.width > 0 && axes.height > 0; i++)
-    {
-        maskByEllipse(edge, edge2, cm, axes, theta, 1.25);
-        getPrincipleAxes(edge2, cm, axes, theta);
-        cv::swap(edge, edge2);
-    }
+    maskByEllipse(edge, edge2, cm, axes, theta, 1.25);
+    getPrincipleAxes(edge2, cm, axes, theta);
+    cv::swap(edge, edge2);
+
     if (axes.width <= 0 || axes.height <=0)
     {
         std::cout << "failed to detect an object" << std::endl;
@@ -137,6 +135,7 @@ int main()
 
         // detection
         cv::Point2f loc = detect(img, 0.35);
+        std::cout << "(" << loc.x << "," << loc.y << ")" << std::endl;
         
         // draw CM point if detected
         if (loc.x < 0) continue;
