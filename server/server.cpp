@@ -23,6 +23,7 @@ struct argumentStruct{
 static void *sendCameraFrames(void *ptr);
 static bool transmitBytes(int socket, Mat& cv_mat_image, uint32_t imgSize);
 static int remoteSocket;
+static int localSocket;
 static xiAPIplusCameraOcv cam;
 static const size_t kPacketSize = 1300;
 
@@ -31,12 +32,7 @@ static void closeDown(int sig);
 
 int main(int argc, char** argv)
 {   
-
-  //--------------------------------------------------------
-  //networking stuff: socket, bind, listen
-  //--------------------------------------------------------
-  int                 localSocket,
-                      port = 4097;                               
+  int port = 4097;                               
 
   struct  sockaddr_in localAddr,
                       remoteAddr;
@@ -57,6 +53,8 @@ int main(int argc, char** argv)
   if (argc == 2) port = atoi(argv[1]);
 
   localSocket = socket(AF_INET , SOCK_STREAM , 0);
+  int option = 1;
+  setsockopt(localSocket, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option)); //Put in so that the server can be restarted immediately if it crashes.
   if (localSocket == -1){
        perror("socket() call failed!!");
   }    
@@ -225,6 +223,7 @@ static bool transmitBytes(int socket, Mat& cv_mat_image, uint32_t imgSize){
 
 static void closeDown(int sig){
   close(remoteSocket);
+  close(localSocket);
   try{
    cam.Close();
   } catch(xiAPIplus_Exception e){
