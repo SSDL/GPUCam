@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
     std::string cameraID[nCameras] = {"35582542", "49607150", "49600150"};
 
     // array of exposure times (in microseconds)
-    int exposureTime[nCameras] = {10000, 10000, 10000};
+    int exposureTime[nCameras] = {2000, 2000, 2000};
 
     // array of bandwidth limits (in Mbits per second)
     int bandwidthLimit[nCameras] = {2000, 600, 600};
@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
                 // display
                 cv::imshow(cameraName[c], cap[c]);
                 cv::moveWindow(cameraName[c], counter, 0);
-                counter += cap[c].cols + 50;
+                counter += cap[c].cols + 100;
                 cv::waitKey(10);
             }
         }
