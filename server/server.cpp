@@ -1,3 +1,12 @@
+/*XiApiPlusOCV based server for real-time Ximea camera preview streaming.
+ *Starter code adapted from Isaac Maia's OpenCV streaming example.
+ */
+
+
+
+
+
+
 #include <stdio.h>
 #include "xiApiPlusOcv.hpp"
 #include <iostream>
