@@ -20,10 +20,11 @@ struct argumentStruct{
 	xiAPIplusCameraOcv *camPtr;
 };
 
-static void *sendCameraBytes(void *ptr);
-static bool transmitBytes(int socket, Mat& cv_mat_image, size_t imgSize);
+static void *sendCameraFrames(void *ptr);
+static bool transmitBytes(int socket, Mat& cv_mat_image, uint32_t imgSize);
 static int remoteSocket;
 static xiAPIplusCameraOcv cam;
+static const size_t kPacketSize = 1300;
 
 //Shutdown function, called upon ctrl+c
 static void closeDown(int sig);
@@ -109,7 +110,9 @@ try
 
   std::cout << "Connection accepted" << std::endl;
   argumentStruct argStruct = {remoteSocket, &cam};
-  pthread_create(&thread_id,NULL,sendCameraBytes, &argStruct);
+  pthread_create(&thread_id,NULL,sendCameraFrames, &argStruct);
+
+  //Only going to arrive here if things fail to send.
   pthread_join(thread_id,NULL);
 
   }
@@ -119,7 +122,7 @@ try
   return 0;
 }
 
-static void *sendCameraBytes(void *ptr)
+static void *sendCameraFrames(void *ptr)
 {
 	argumentStruct* arguments = (argumentStruct*) ptr;
 	int socket = arguments->remoteSocket;
@@ -140,7 +143,7 @@ static void *sendCameraBytes(void *ptr)
       if ( ! cv_mat_image.isContinuous() ) { 
           cv_mat_image = cv_mat_image.clone();
       }  
-      int imgSize = cv_mat_image.total() * cv_mat_image.elemSize();
+      uint32_t imgSize = cv_mat_image.total() * cv_mat_image.elemSize();
         //cv::imshow("Image from camera",cv_mat_image);
 				
         if(!transmitBytes(socket, cv_mat_image, imgSize)){
@@ -166,28 +169,57 @@ static void *sendCameraBytes(void *ptr)
 	return NULL;
 }
 
-static bool transmitBytes(int socket, Mat& cv_mat_image, size_t imgSize){
-  uint32_t size = imgSize;
-  assert(size == imgSize);
-  int bytesSent = 0;
+static bool transmitBytes(int socket, Mat& cv_mat_image, uint32_t imgSize){
+  size_t bytesSent;
   clock_t timeElapsed;
+  vector<uint32_t> handshakeData;
+  handshakeData.push_back(imgSize);
+  handshakeData.push_back(cv_mat_image.type());
+  handshakeData.push_back(cv_mat_image.rows);
+  handshakeData.push_back(cv_mat_image.cols);
+
+  cout<<"Image size: "<<handshakeData[0]<<", type number: "<<handshakeData[1]<<", rows: "<<handshakeData[2]<<", cols: "<<handshakeData[3]<<endl;
+
+  clock_t startTime = clock();
   //Handshake with info about the size of the frame.
-  do{
-    clock_t startTime = clock();
-    int retVal = send(socket, (const void *) &imgSize, sizeof(size)-bytesSent, 0);
-    timeElapsed = (clock() - startTime) * 1000 / CLOCKS_PER_SEC;
-    if(retVal == -1){
-      cout<<strerror(errno)<<endl;
-      return false;
-    } else {
-      bytesSent += retVal;
-    }
-  } while(bytesSent < sizeof(size));
-  
-  cout<<"Image size: "<<size<<", time spent on handshake: "<<timeElapsed<<" ms"<<endl;
+  for(uint32_t handshakeEntry : handshakeData){
+    bytesSent = 0;
+    do{
+      int retVal = send(socket, (const void *) &handshakeEntry, sizeof(handshakeEntry)-bytesSent, 0);
+      if(retVal == -1){
+        cout<<strerror(errno)<<endl;
+        return false;
+      } else {
+        bytesSent += retVal;
+      }
+    } while(bytesSent < sizeof(handshakeEntry));
+  }
 
-  
+  //Reinitialize the bytes sent variable to keep track of the bytes sent per frame.
+  bytesSent = 0;
+  size_t bytesLeftToSend = imgSize;
+    do{
+      //Initialize the bytes sent per packet and bytes left to send variables.
+      size_t nextPacketSize;
+      if(bytesLeftToSend < kPacketSize){
+        nextPacketSize = bytesLeftToSend;
+      } else {
+        nextPacketSize = kPacketSize;
+      }
 
+      int retVal = send(socket, (const char *) cv_mat_image.data+bytesSent, nextPacketSize, 0);
+      if(retVal == -1){
+        cout<<strerror(errno)<<endl;
+        return false;
+      } else {
+        bytesSent += retVal;
+        bytesLeftToSend -= retVal;
+      }
+
+    } while(bytesLeftToSend > 0);
+  cout<<"Sent "<<bytesSent<<" bytes."<<endl;
+  
+  timeElapsed = (clock() - startTime) * 1000 / CLOCKS_PER_SEC;
   return true;
 }
 
