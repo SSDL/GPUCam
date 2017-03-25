@@ -33,14 +33,18 @@ static void *sendCameraFrames(void *ptr);
 static bool transmitBytes(int socket, Mat& cv_mat_image, uint32_t imgSize);
 static int remoteSocket;
 static int localSocket;
-static xiAPIplusCameraOcv cam;
+static xiAPIplusCameraOcv* cam;
 static const size_t kPacketSize = 1300;
+static const size_t kLoopTime = 500;
+static char * const middleCameraSN = const_cast<char *>("35582542");
 
 //Shutdown function, called upon ctrl+c
 static void closeDown(int sig);
 
 int main(int argc, char** argv)
 {   
+
+  cam = new xiAPIplusCameraOcv();
   int port = 4097;                               
 
   struct  sockaddr_in localAddr,
@@ -84,39 +88,38 @@ int main(int argc, char** argv)
             <<  "Server Port:" << port << std::endl;
 
 
-
-signal(SIGINT, closeDown);
-
-try
-	{
-
-		// Retrieving a handle to the camera device
-		printf("Opening first camera...\n");
-		cam.OpenFirst();
-		
-		// Set exposure
-		cam.SetExposureTime(10000); //10000 us = 10 ms
-		cam.SetBandwidthLimit(1000);		
-
-	} catch(xiAPIplus_Exception& exp)
-	{
-		printf("Error:\n");
-		exp.PrintError();
-		cvWaitKey(2000);
-		return 0;
-	}
+  signal(SIGINT, closeDown);
 
   while(1){
+
+    try
+    {
+
+      // Retrieving a handle to the camera device
+      printf("Opening middle camera...\n");
+      cam->OpenBySN(middleCameraSN);
+      
+      // Set exposure
+      cam->SetExposureTime(10000); //10000 us = 10 ms
+      cam->SetBandwidthLimit(1000);    
+
+    } catch(xiAPIplus_Exception& exp)
+    {
+      printf("Error:\n");
+      exp.PrintError();
+      cvWaitKey(2000);
+      return 0;
+    }
      
-   remoteSocket = accept(localSocket, (struct sockaddr *)&remoteAddr, (socklen_t*)&addrLen);  
+    remoteSocket = accept(localSocket, (struct sockaddr *)&remoteAddr, (socklen_t*)&addrLen);  
     //std::cout << remoteSocket<< "32"<< std::endl;
-  if (remoteSocket < 0) {
-      perror("accept failed!");
-      exit(1);
-  } 
+    if (remoteSocket < 0) {
+        perror("accept failed!");
+        exit(1);
+    } 
 
   std::cout << "Connection accepted" << std::endl;
-  argumentStruct argStruct = {remoteSocket, &cam};
+  argumentStruct argStruct = {remoteSocket, cam};
   pthread_create(&thread_id,NULL,sendCameraFrames, &argStruct);
 
   //Only going to arrive here if things fail to send.
@@ -133,17 +136,17 @@ static void *sendCameraFrames(void *ptr)
 {
 	argumentStruct* arguments = (argumentStruct*) ptr;
 	int socket = arguments->remoteSocket;
-	xiAPIplusCameraOcv cam = *(xiAPIplusCameraOcv*) arguments->camPtr;
+	xiAPIplusCameraOcv* cam = (xiAPIplusCameraOcv*) arguments->camPtr;
 	try
 	{
-		cam.StartAcquisition();
+		cam->StartAcquisition();
 		int bytes = 0;
 		printf("First pixel value \n");
-		XI_IMG_FORMAT format = cam.GetImageDataFormat();
+		XI_IMG_FORMAT format = cam->GetImageDataFormat();
 		while(1)
 		{
       clock_t startTime = clock();
-			Mat cv_mat_image = cam.GetNextImageOcvMat();
+			Mat cv_mat_image = cam->GetNextImageOcvMat();
 			if (format == XI_RAW16 || format == XI_MONO16){ 
 				normalize(cv_mat_image, cv_mat_image, 0, 65536, NORM_MINMAX, -1, Mat()); // 0 - 65536, 16 bit unsigned integer range
 			} 
@@ -152,15 +155,16 @@ static void *sendCameraFrames(void *ptr)
       }  
       uint32_t imgSize = cv_mat_image.total() * cv_mat_image.elemSize();
         //cv::imshow("Image from camera",cv_mat_image);
-				
+			clock_t timeElapsedPrepping = (clock() - startTime) * 1000 / CLOCKS_PER_SEC;
         if(!transmitBytes(socket, cv_mat_image, imgSize)){
           cout<<"Error sending the packet."<<endl;
-          cam.StopAcquisition();
+          cam->StopAcquisition();
           return NULL;
         }
         clock_t timeElapsed = (clock() - startTime) * 1000 / CLOCKS_PER_SEC;
-        if(timeElapsed < 1000)
-          cvWaitKey(1000 - timeElapsed);
+        cout<<"Time elapsed prepping: "<<timeElapsedPrepping<<", time elapsed total: "<<timeElapsed<<endl;
+        if(timeElapsed < kLoopTime)
+          cvWaitKey(kLoopTime - timeElapsed);
 		}
 		
 		printf("Done\n");
@@ -227,6 +231,7 @@ static bool transmitBytes(int socket, Mat& cv_mat_image, uint32_t imgSize){
   cout<<"Sent "<<bytesSent<<" bytes."<<endl;
   
   timeElapsed = (clock() - startTime) * 1000 / CLOCKS_PER_SEC;
+  cout<<"Time spent sending data: "<<timeElapsed<<" ms."<<endl;
   return true;
 }
 
@@ -234,7 +239,7 @@ static void closeDown(int sig){
   close(remoteSocket);
   close(localSocket);
   try{
-   cam.Close();
+   cam->Close();
   } catch(xiAPIplus_Exception e){
   }
   exit(0);
