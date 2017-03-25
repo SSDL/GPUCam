@@ -1,0 +1,5 @@
+# Don't ignore the .gitignore
+!.gitignore
+
+# Don't ignore the test images
+!*.jpg

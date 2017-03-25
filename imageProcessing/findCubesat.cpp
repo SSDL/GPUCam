@@ -116,12 +116,13 @@ cv::Point2f detect(cv::Mat &img, double threshold)
 
 int main()
 {
-    int nImages = 500;
+    int nImages = 50;
+    int skip = 10;
     cv::Mat img;
 
-    for (int frame = 0; frame < nImages; frame++)
+    for (int frame = 0; frame < skip * nImages; frame+=skip)
     {
-        std::cout << frame << std::endl;
+        std::cout << frame/skip << std::endl;
 
         // image file name
         std::ostringstream name;
@@ -142,7 +143,7 @@ int main()
         cv::circle(img, loc, 12, 128, -1);
         cv::pyrDown(img, img);
         cv::imshow("contours", img);
-        char c = cv::waitKey(30);
+        char c = cv::waitKey(100);
         if (c == 'q') break;
     }
 

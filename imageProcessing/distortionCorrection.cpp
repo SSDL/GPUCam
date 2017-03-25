@@ -33,16 +33,17 @@ int main()
     
 
     int nImages = 500;
+    int skip = 10;
     cv::Mat img, corrected, difference;
 
     // load images and apply camera matrices
-    for (int frame = 0; frame < nImages; frame++)
+    for (int frame = 0; frame < nImages; frame+=skip)
     {
-        std::cout << frame << std::endl;
+        std::cout << frame/skip << std::endl;
 
         // image file name
         std::ostringstream name;
-        name << "recording2/";
+        name << "demo_images/";
         if (frame < 10) name << "0";
         if (frame < 100) name << "0";
         name <<  frame << ".jpg";
@@ -56,12 +57,8 @@ int main()
         // get the difference
         cv::absdiff(img, corrected, difference);
 
-        cv::pyrDown(img, img);
-        cv::pyrDown(corrected, corrected);
-        cv::imshow("original", img);
-        cv::moveWindow("original", 0, 0);
-        cv::imshow("corrected", corrected);
-        cv::moveWindow("corrected", img.cols + 50, 0);
+        cv::pyrDown(difference, difference);
+        cv::imshow("difference", difference);
         char c = cv::waitKey(30);
         if (c == 'q') break;
     }
