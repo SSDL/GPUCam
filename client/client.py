@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 import threading
 from multiprocessing.pool import ThreadPool
+import time
 
 packetSize = 1300
 dataType = {0 : np.uint8,
@@ -64,13 +65,14 @@ def receiveData(sock):
 
 def main():
     pool = ThreadPool(1)
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_address = ("10.34.193.123", 4097)
-    print "Attempting to connect to the server..."
     while(True):
         try:
+            print "Attempting to connect to the server..."
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            server_address = ("10.34.193.123", 4097)
             sock.connect(server_address)
         except socket.error:
+            time.sleep(1)
             continue
         else:
             print "Connection established."
